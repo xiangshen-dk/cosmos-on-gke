@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: cosmos-config
   namespace: cosmos
+  labels:
+    app: cosmos
 data:
   inference.yaml: |
     model:
