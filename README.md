@@ -23,12 +23,30 @@ This repository contains the infrastructure and deployment configurations for ru
 │   │   ├── 04-deployment.yaml
 │   │   ├── 05-service.yaml
 │   │   ├── 06-hpa.yaml
-│   │   ├── 07-pdb.yaml
-│   │   └── kustomization.yaml
-│   └── deploy-cosmos.sh  # Application deployment script
+│   │   └── 07-pdb.yaml
+│   ├── deploy-cosmos.sh  # Application deployment script
+│   └── cleanup-cosmos.sh # Application cleanup script
 │
-└── scripts/              # Utility scripts (legacy)
+└── scripts/              # Alternative deployment method (shell scripts)
+    ├── create-gke-cluster.sh    # Create GKE cluster
+    ├── deploy-cosmos.sh         # Deploy Cosmos
+    ├── cleanup-cluster.sh       # Remove cluster
+    └── README.md               # Scripts documentation
 ```
+
+## Deployment Methods
+
+This repository provides two deployment methods:
+
+### Method 1: Terraform + Kubernetes (Recommended)
+- **terraform/**: Infrastructure as Code for creating GKE cluster
+- **kubernetes/**: Kubernetes manifests and deployment scripts
+- Best for production environments with infrastructure versioning needs
+
+### Method 2: Shell Scripts Only
+- **scripts/**: All-in-one shell scripts for both infrastructure and application
+- Best for quick testing or development environments
+- See [scripts/README.md](scripts/README.md) for detailed instructions
 
 ## Architecture Overview
 

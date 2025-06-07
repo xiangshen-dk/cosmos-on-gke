@@ -144,10 +144,8 @@ sed -i.bak "s|replicas: 1|replicas: $REPLICAS|g" "$TEMP_DIR/04-deployment.yaml"
 sed -i.bak "s|storage: 150Gi|storage: $MODEL_STORAGE|g" "$TEMP_DIR/03-pvcs.yaml"
 sed -i.bak "s|storage: 100Gi|storage: $CACHE_STORAGE|g" "$TEMP_DIR/03-pvcs.yaml"
 
-# Apply the manifests (excluding kustomization.yaml)
+# Apply the manifests
 print_message $YELLOW "Applying Kubernetes manifests..."
-# Remove kustomization.yaml from temp directory to avoid applying it
-rm -f "$TEMP_DIR/kustomization.yaml"
 kubectl apply -f "$TEMP_DIR/"
 
 # Wait for deployment to be ready

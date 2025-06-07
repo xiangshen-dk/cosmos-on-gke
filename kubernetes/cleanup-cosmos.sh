@@ -121,36 +121,13 @@ if [[ "$FORCE" != true ]]; then
     fi
 fi
 
-# Delete resources in reverse order of creation
-print_message $YELLOW "Deleting Cosmos resources..."
+# Delete all resources with the app=cosmos label
+print_message $YELLOW "Deleting all Cosmos application resources..."
+kubectl delete all,configmap,secret -l app=cosmos -n "$NAMESPACE" --ignore-not-found=true
 
-# Delete PodDisruptionBudget
-print_message $YELLOW "Deleting PodDisruptionBudget..."
-kubectl delete pdb cosmos-pdb -n "$NAMESPACE" --ignore-not-found=true
-
-# Delete HorizontalPodAutoscaler
-print_message $YELLOW "Deleting HorizontalPodAutoscaler..."
-kubectl delete hpa cosmos-hpa -n "$NAMESPACE" --ignore-not-found=true
-
-# Delete Service (this will release the LoadBalancer)
-print_message $YELLOW "Deleting Service..."
-kubectl delete service cosmos-service -n "$NAMESPACE" --ignore-not-found=true
-
-# Delete Deployment
-print_message $YELLOW "Deleting Deployment..."
-kubectl delete deployment cosmos-inference -n "$NAMESPACE" --ignore-not-found=true
-
-# Wait for pods to terminate
+# Wait for pods to terminate to ensure a clean deletion
 print_message $YELLOW "Waiting for pods to terminate..."
-kubectl wait --for=delete pod -l app=cosmos -n "$NAMESPACE" --timeout=60s 2>/dev/null || true
-
-# Delete ConfigMap
-print_message $YELLOW "Deleting ConfigMap..."
-kubectl delete configmap cosmos-config -n "$NAMESPACE" --ignore-not-found=true
-
-# Delete Secret
-print_message $YELLOW "Deleting Secret..."
-kubectl delete secret hf-token-secret -n "$NAMESPACE" --ignore-not-found=true
+kubectl wait --for=delete pod -l app=cosmos -n "$NAMESPACE" --timeout=120s 2>/dev/null || true
 
 # Delete PVCs if requested
 if [[ "$DELETE_PVCS" == true ]]; then
