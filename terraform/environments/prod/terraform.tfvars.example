@@ -1,0 +1,23 @@
+# GCP Configuration
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+zone       = "us-central1-a"
+
+# Cluster Configuration
+cluster_name = "cosmos-gpu-cluster"
+
+# VPC Configuration
+vpc_name       = "cosmos-vpc"
+subnet_name    = "cosmos-subnet"
+subnet_range   = "10.0.0.0/24"
+pods_range     = "10.1.0.0/16"
+services_range = "10.2.0.0/16"
+
+# GPU Node Pool Configuration
+gpu_type     = "nvidia-a100-80gb"
+gpu_count    = 1
+machine_type = "a2-ultragpu-1g"
+num_nodes    = 2
+min_nodes    = 1
+max_nodes    = 4
+disk_size    = 400

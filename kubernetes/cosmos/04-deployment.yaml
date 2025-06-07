@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cosmos-inference
+  namespace: cosmos
+  labels:
+    app: cosmos
+spec:
+  replicas: 1  # Default replicas, adjust as needed
+  selector:
+    matchLabels:
+      app: cosmos
+  template:
+    metadata:
+      labels:
+        app: cosmos
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-accelerator: "nvidia-a100-80gb"  # Default GPU type
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      containers:
+        - name: cosmos
+          image: us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-cosmos:20250314  # Vertex AI image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: MODEL_ID
+              value: "nvidia/Cosmos-1.0-Diffusion-7B-Text2World"  # Default model
+            - name: TASK
+              value: "text-to-world"
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token-secret
+                  key: HF_TOKEN
+            - name: OFFLOAD_NETWORK
+              value: "true"
+            - name: OFFLOAD_TOKENIZER
+              value: "true"
+            - name: OFFLOAD_TEXT_ENCODER_MODEL
+              value: "true"
+            - name: OFFLOAD_GUARDRAIL_MODELS
+              value: "true"
+            - name: OFFLOAD_PROMPT_UPSAMPLER
+              value: "true"
+            # Cache and temp directories
+            - name: HF_HOME
+              value: "/models/huggingface"
+            - name: TRANSFORMERS_CACHE
+              value: "/cache/transformers"
+            - name: HUGGINGFACE_HUB_CACHE
+              value: "/cache/hub"
+            - name: TMPDIR
+              value: "/cache/tmp"
+            - name: TEMP
+              value: "/cache/tmp"
+            - name: TMP
+              value: "/cache/tmp"
+            - name: HOME
+              value: "/cache/home"
+            - name: XDG_CACHE_HOME
+              value: "/cache/.cache"
+            # GPU settings
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: "compute,utility"
+            - name: LD_LIBRARY_PATH
+              value: "/usr/local/nvidia/lib64:/usr/local/cuda/lib64"
+          resources:
+            requests:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "12"
+              memory: "48Gi"
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: model-storage
+              mountPath: /models
+            - name: cache-storage
+              mountPath: /cache
+            - name: config
+              mountPath: /config
+            - name: dshm
+              mountPath: /dev/shm
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: cosmos-model-storage
+        - name: cache-storage
+          persistentVolumeClaim:
+            claimName: cosmos-cache-storage
+        - name: config
+          configMap:
+            name: cosmos-config
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
