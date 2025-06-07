@@ -14,9 +14,9 @@ kubernetes/
 │   ├── 04-deployment.yaml    # Deployment configuration
 │   ├── 05-service.yaml       # LoadBalancer service
 │   ├── 06-hpa.yaml           # Horizontal Pod Autoscaler
-│   ├── 07-pdb.yaml           # Pod Disruption Budget
-│   └── kustomization.yaml    # Kustomize configuration
-└── deploy-cosmos.sh          # Deployment script
+│   └── 07-pdb.yaml           # Pod Disruption Budget
+├── deploy-cosmos.sh          # Deployment script
+└── cleanup-cosmos.sh         # Cleanup script
 ```
 
 ## Prerequisites
@@ -73,7 +73,7 @@ The easiest way to deploy Cosmos is using the provided deployment script:
 
 3. **Apply the manifests:**
    ```bash
-   # Apply individual YAML files (excluding kustomization.yaml)
+   # Apply individual YAML files
    kubectl apply -f kubernetes/cosmos/00-namespace.yaml
    kubectl apply -f kubernetes/cosmos/01-secret.yaml
    kubectl apply -f kubernetes/cosmos/02-configmap.yaml
@@ -96,50 +96,22 @@ The easiest way to deploy Cosmos is using the provided deployment script:
 
 ## Customization
 
-### Using Kustomize (Optional)
+The deployment script provides extensive customization options through command-line parameters. For environment-specific configurations, you can:
 
-The manifests include a `kustomization.yaml` file for easy customization. To use it:
+1. **Use different parameter values** when calling the deployment script
+2. **Create wrapper scripts** with environment-specific defaults
+3. **Modify the YAML files directly** for permanent changes
 
+Example wrapper script for production:
 ```bash
-# Apply with kustomize (requires kubectl 1.14+)
-kubectl apply -k kubernetes/cosmos/
-
-# Or use the kustomize binary directly
-kustomize build kubernetes/cosmos/ | kubectl apply -f -
-```
-
-**Note**: The deployment script does not use kustomize by default. It applies the YAML files directly after customizing them based on the provided parameters.
-
-### Environment-specific Overlays
-
-For different environments (dev, staging, prod), create overlay directories:
-
-```
-kubernetes/
-├── cosmos/          # Base manifests
-└── overlays/
-    ├── dev/
-    │   └── kustomization.yaml
-    └── prod/
-        └── kustomization.yaml
-```
-
-Example overlay `kustomization.yaml`:
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-bases:
-  - ../../cosmos
-
-patchesStrategicMerge:
-  - deployment-patch.yaml
-
-configMapGenerator:
-  - name: cosmos-config
-    behavior: merge
-    files:
-      - inference.yaml
+#!/bin/bash
+# deploy-cosmos-prod.sh
+./deploy-cosmos.sh \
+  -t "$PROD_HF_TOKEN" \
+  -c cosmos-prod-cluster \
+  -z us-central1-a \
+  -p prod-project-id \
+  -r 3  # 3 replicas for production
 ```
 
 ## Monitoring and Management
