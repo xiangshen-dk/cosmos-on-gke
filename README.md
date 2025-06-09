@@ -5,6 +5,7 @@ This repository contains the infrastructure and deployment configurations for ru
 ## Deployment Approach
 
 There are multiple ways to deploy NVIDIA Cosmos:
+
 - **NVIDIA NIM (NVIDIA Inference Microservices)** - NVIDIA's containerized microservices for deploying AI models
 - **Direct PyTorch Implementation** - Using PyTorch directly with custom inference code
 - **Vertex AI Containers** - Google's optimized containers for model serving
@@ -16,15 +17,15 @@ There are multiple ways to deploy NVIDIA Cosmos:
 ```
 .
 ├── terraform/              # Infrastructure as Code for GKE
-│   ├── environments/      # Environment-specific configurations
-│   │   └── prod/         # Production environment
-│   ├── modules/          # Reusable Terraform modules
-│   │   └── gke/         # GKE cluster module
-│   ├── deploy.sh        # Infrastructure deployment script
-│   └── destroy.sh       # Infrastructure cleanup script
+│   ├── environments/       # Environment-specific configurations
+│   │   └── prod/           # Production environment
+│   ├── modules/            # Reusable Terraform modules
+│   │   └── gke/            # GKE cluster module
+│   ├── deploy.sh           # Infrastructure deployment script
+│   └── destroy.sh          # Infrastructure cleanup script
 │
-├── kubernetes/            # Kubernetes manifests for Cosmos
-│   ├── cosmos/           # Base Kubernetes resources
+├── kubernetes/             # Kubernetes manifests for Cosmos
+│   ├── cosmos/             # Base Kubernetes resources
 │   │   ├── 00-namespace.yaml
 │   │   ├── 01-secret.yaml
 │   │   ├── 02-configmap.yaml
@@ -33,14 +34,14 @@ There are multiple ways to deploy NVIDIA Cosmos:
 │   │   ├── 05-service.yaml
 │   │   ├── 06-hpa.yaml
 │   │   └── 07-pdb.yaml
-│   ├── deploy-cosmos.sh  # Application deployment script
-│   └── cleanup-cosmos.sh # Application cleanup script
+│   ├── deploy-cosmos.sh    # Application deployment script
+│   └── cleanup-cosmos.sh   # Application cleanup script
 │
-└── scripts/              # Alternative deployment method (shell scripts)
+└── scripts/                # Alternative deployment method (shell scripts)
     ├── create-gke-cluster.sh    # Create GKE cluster
     ├── deploy-cosmos.sh         # Deploy Cosmos
     ├── cleanup-cluster.sh       # Remove cluster
-    └── README.md               # Scripts documentation
+    └── README.md                # Scripts documentation
 ```
 
 ## Deployment Methods
@@ -48,11 +49,13 @@ There are multiple ways to deploy NVIDIA Cosmos:
 This repository provides two deployment methods:
 
 ### Method 1: Terraform + Kubernetes (Recommended)
+
 - **terraform/**: Infrastructure as Code for creating GKE cluster
 - **kubernetes/**: Kubernetes manifests and deployment scripts
 - Best for production environments with infrastructure versioning needs
 
 ### Method 2: Shell Scripts Only
+
 - **scripts/**: All-in-one shell scripts for both infrastructure and application
 - Best for quick testing or development environments
 - See [scripts/README.md](scripts/README.md) for detailed instructions
@@ -62,6 +65,7 @@ This repository provides two deployment methods:
 The deployment is separated into two distinct layers:
 
 1. **Infrastructure Layer** (Terraform)
+
    - Creates GCP resources: VPC, subnets, firewall rules
    - Deploys GKE cluster with GPU-enabled node pools
    - Configures cluster settings and workload identity
@@ -115,6 +119,7 @@ cd ../../../kubernetes
 ### Infrastructure Configuration (Terraform)
 
 Key variables in `terraform/environments/prod/terraform.tfvars`:
+
 - `project_id`: Your GCP project ID
 - `gpu_type`: GPU type (default: nvidia-a100-80gb)
 - `num_nodes`: Number of GPU nodes
@@ -123,6 +128,7 @@ Key variables in `terraform/environments/prod/terraform.tfvars`:
 ### Application Configuration (Kubernetes)
 
 The deployment script accepts various parameters:
+
 - `-t, --token`: HuggingFace token (required)
 - `-g, --gpu-type`: GPU type for node selector (default: nvidia-a100-80gb)
 - `-m, --model-id`: Cosmos model to use (default: nvidia/Cosmos-1.0-Diffusion-7B-Text2World)
@@ -148,6 +154,7 @@ While A100 GPUs offer great performance, other GPU types can provide even better
 To use a different GPU type, update the following:
 
 1. **Terraform Configuration**: Set `gpu_type` in your `terraform.tfvars`:
+
    ```hcl
    gpu_type = "nvidia-h100-80gb"  # or "nvidia-h200-141gb", "nvidia-l4", etc.
    ```
@@ -162,6 +169,7 @@ To use a different GPU type, update the following:
 ## Monitoring
 
 ### Check Infrastructure Status
+
 ```bash
 # View cluster status, change zone and project id as needed
 gcloud container clusters describe cosmos-gpu-cluster \
@@ -172,6 +180,7 @@ kubectl get nodes -l cloud.google.com/gke-accelerator
 ```
 
 ### Check Application Status
+
 ```bash
 # View pods
 kubectl get pods -n cosmos
@@ -203,6 +212,7 @@ done
 ```
 
 ### Check Health Status
+
 ```bash
 # Test the health endpoint
 curl http://$COSMOS_IP/health
@@ -211,6 +221,7 @@ curl http://$COSMOS_IP/health
 Expected response should indicate the service is healthy.
 
 ### Test Inference Endpoint
+
 The Vertex AI Cosmos container uses a custom API format for text-to-world generation:
 
 ```bash
@@ -237,10 +248,12 @@ curl -X POST http://$COSMOS_IP/predict \
 ```
 
 The response will include:
+
 - `predictions`: Array containing the generated videos
   - `output`: Base64-encoded video data (MP4 format)
 
 To save the generated video:
+
 ```bash
 # Generate video and save to file
 curl -X POST http://$COSMOS_IP/predict \
@@ -259,6 +272,7 @@ curl -X POST http://$COSMOS_IP/predict \
 ```
 
 ### Parameters Explanation
+
 - `text`: The text prompt describing the scene to generate
 - `negative_prompt`: (Optional) What to avoid in the generation
 - `guidance`: Guidance scale (default: 7.0)
@@ -270,7 +284,9 @@ curl -X POST http://$COSMOS_IP/predict \
 - `seed`: Random seed for reproducibility (optional)
 
 ### Monitor GPU Usage
+
 While making requests, you can monitor GPU utilization:
+
 ```bash
 # Get the pod name
 POD_NAME=$(kubectl get pods -n cosmos -l app=cosmos -o jsonpath='{.items[0].metadata.name}')
@@ -283,7 +299,9 @@ kubectl exec -it $POD_NAME -n cosmos -- watch -n 1 nvidia-smi
 ```
 
 ### View Logs
+
 To troubleshoot or monitor the service:
+
 ```bash
 # View application logs
 kubectl logs -f deployment/cosmos-inference -n cosmos
@@ -293,7 +311,9 @@ kubectl logs -f deployment/cosmos-inference -c cosmos -n cosmos
 ```
 
 ### Full Testing Script
+
 Here's a complete script to test all endpoints:
+
 ```bash
 #!/bin/bash
 # Get the service IP
@@ -339,6 +359,7 @@ echo -e "\nVideo saved as test_video.mp4"
 ## Cleanup
 
 ### Remove Application
+
 ```bash
 # Using the cleanup script (recommended)
 cd kubernetes
@@ -349,6 +370,7 @@ kubectl delete -f kubernetes/cosmos/
 ```
 
 ### Destroy Infrastructure
+
 ```bash
 cd terraform/environments/prod
 ../../destroy.sh
@@ -380,12 +402,14 @@ cd terraform/environments/prod
 ## Troubleshooting
 
 See the individual README files:
+
 - [Infrastructure Troubleshooting](terraform/README.md#troubleshooting)
 - [Application Troubleshooting](kubernetes/README.md#troubleshooting)
 
 ## Contributing
 
 When making changes:
+
 1. Test infrastructure changes in a dev environment first
 2. Update documentation as needed
 3. Follow the existing naming conventions
