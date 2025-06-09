@@ -2,6 +2,15 @@
 
 This repository contains the infrastructure and deployment configurations for running NVIDIA Cosmos on Google Kubernetes Engine (GKE) with GPU support.
 
+## Deployment Approach
+
+There are multiple ways to deploy NVIDIA Cosmos:
+- **NVIDIA NIM (NVIDIA Inference Microservices)** - NVIDIA's containerized microservices for deploying AI models
+- **Direct PyTorch Implementation** - Using PyTorch directly with custom inference code
+- **Vertex AI Containers** - Google's optimized containers for model serving
+
+**This repository uses the Vertex AI container approach**, which provides a PyTorch-based implementation with built-in optimizations for GCP infrastructure. The Vertex AI container (`us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-cosmos`)
+
 ## Project Structure
 
 ```
