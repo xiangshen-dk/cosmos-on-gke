@@ -48,7 +48,7 @@ This repository provides two deployment methods:
 - Best for quick testing or development environments
 - See [scripts/README.md](scripts/README.md) for detailed instructions
 
-## Architecture Overview
+## Deployment Overview
 
 The deployment is separated into two distinct layers:
 
@@ -122,11 +122,39 @@ The deployment script accepts various parameters:
 - `-d, --cache-storage`: Cache storage size (default: 100Gi)
 - `-r, --replicas`: Number of replicas (default: 1)
 
+## GPU Selection
+
+This deployment uses NVIDIA A100 80GB GPUs as the default example configuration. The A100 provides excellent performance for running NVIDIA Cosmos models and is widely available on GCP.
+
+### Alternative GPU Options
+
+While A100 GPUs offer great performance, other GPU types can provide even better performance characteristics, though at a higher cost. For example:
+
+- **NVIDIA H100**: Next-generation GPU with significant performance improvements over A100, especially for large language models and diffusion models. Offers up to 3x performance improvement but at approximately 2-3x the cost.
+- **NVIDIA H200**: High-performance GPU with enhanced memory bandwidth and capacity. Provides excellent performance for memory-intensive workloads but comes at a premium price point.
+- **NVIDIA L4**: More cost-effective option for lighter workloads or development environments, though with reduced performance compared to A100.
+
+### Configuring GPU Type
+
+To use a different GPU type, update the following:
+
+1. **Terraform Configuration**: Set `gpu_type` in your `terraform.tfvars`:
+   ```hcl
+   gpu_type = "nvidia-h100-80gb"  # or "nvidia-h200-141gb", "nvidia-l4", etc.
+   ```
+
+2. **Kubernetes Deployment**: Use the `-g` flag when deploying:
+   ```bash
+   ./deploy-cosmos.sh -t YOUR_HF_TOKEN -g nvidia-h100-80gb
+   ```
+
+**Note**: Ensure your GCP project has sufficient quota for your chosen GPU type. Premium GPUs like H100 and H200 may have limited availability and require quota increases.
+
 ## Monitoring
 
 ### Check Infrastructure Status
 ```bash
-# View cluster status
+# View cluster status, change zone and project id as needed
 gcloud container clusters describe cosmos-gpu-cluster \
   --zone us-central1-a --project your-project-id
 
