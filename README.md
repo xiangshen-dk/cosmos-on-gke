@@ -174,6 +174,159 @@ kubectl logs -f deployment/cosmos-inference -n cosmos
 kubectl get svc cosmos-service -n cosmos
 ```
 
+## Testing
+
+Once the service is deployed, you can test the Cosmos endpoints:
+
+### Get the Service Endpoint
+
+```bash
+# Get the external IP address
+COSMOS_IP=$(kubectl get svc cosmos-service -n cosmos -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "Cosmos service IP: $COSMOS_IP"
+
+# Wait for IP if not ready yet
+while [ -z "$COSMOS_IP" ]; do
+  echo "Waiting for LoadBalancer IP..."
+  sleep 10
+  COSMOS_IP=$(kubectl get svc cosmos-service -n cosmos -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+done
+```
+
+### Check Health Status
+```bash
+# Test the health endpoint
+curl http://$COSMOS_IP/health
+```
+
+Expected response should indicate the service is healthy.
+
+### Test Inference Endpoint
+The Vertex AI Cosmos container uses a custom API format for text-to-world generation:
+
+```bash
+# Send a test inference request
+curl -X POST http://$COSMOS_IP/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instances": [
+      {
+        "text": "A sleek, humanoid robot stands in a vast warehouse filled with neatly stacked cardboard boxes on industrial shelves."
+      }
+    ],
+    "parameters": {
+      "negative_prompt": "",
+      "guidance": 7.0,
+      "num_steps": 30,
+      "height": 704,
+      "width": 1280,
+      "fps": 24,
+      "num_video_frames": 121,
+      "seed": 42
+    }
+  }'
+```
+
+The response will include:
+- `predictions`: Array containing the generated videos
+  - `output`: Base64-encoded video data (MP4 format)
+
+To save the generated video:
+```bash
+# Generate video and save to file
+curl -X POST http://$COSMOS_IP/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instances": [{"text": "A futuristic city with flying cars"}],
+    "parameters": {
+      "guidance": 7.0,
+      "num_steps": 30,
+      "height": 704,
+      "width": 1280,
+      "fps": 24,
+      "num_video_frames": 121
+    }
+  }' | jq -r '.predictions[0].output' | base64 -d > generated_video.mp4
+```
+
+### Parameters Explanation
+- `text`: The text prompt describing the scene to generate
+- `negative_prompt`: (Optional) What to avoid in the generation
+- `guidance`: Guidance scale (default: 7.0)
+- `num_steps`: Number of denoising steps (default: 30)
+- `height`: Video height in pixels (default: 704)
+- `width`: Video width in pixels (default: 1280)
+- `fps`: Frames per second (default: 24)
+- `num_video_frames`: Total number of frames to generate (default: 121)
+- `seed`: Random seed for reproducibility (optional)
+
+### Monitor GPU Usage
+While making requests, you can monitor GPU utilization:
+```bash
+# Get the pod name
+POD_NAME=$(kubectl get pods -n cosmos -l app=cosmos -o jsonpath='{.items[0].metadata.name}')
+
+# Check GPU usage
+kubectl exec -it $POD_NAME -n cosmos -- nvidia-smi
+
+# Watch GPU usage in real-time
+kubectl exec -it $POD_NAME -n cosmos -- watch -n 1 nvidia-smi
+```
+
+### View Logs
+To troubleshoot or monitor the service:
+```bash
+# View application logs
+kubectl logs -f deployment/cosmos-inference -n cosmos
+
+# View specific container logs if there are issues
+kubectl logs -f deployment/cosmos-inference -c cosmos -n cosmos
+```
+
+### Full Testing Script
+Here's a complete script to test all endpoints:
+```bash
+#!/bin/bash
+# Get the service IP
+COSMOS_IP=$(kubectl get svc cosmos-service -n cosmos -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+# Wait for IP if needed
+while [ -z "$COSMOS_IP" ]; do
+  echo "Waiting for LoadBalancer IP..."
+  sleep 10
+  COSMOS_IP=$(kubectl get svc cosmos-service -n cosmos -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+done
+
+echo "Testing Cosmos service at: $COSMOS_IP"
+
+# Test health
+echo -e "\n1. Testing health endpoint:"
+curl http://$COSMOS_IP/health
+
+# Test inference
+echo -e "\n\n2. Testing inference endpoint (this will take several minutes):"
+curl -X POST http://$COSMOS_IP/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instances": [
+      {
+        "text": "A beautiful sunset over mountains"
+      }
+    ],
+    "parameters": {
+      "guidance": 7.0,
+      "num_steps": 30,
+      "height": 704,
+      "width": 1280,
+      "fps": 24,
+      "num_video_frames": 121,
+      "seed": 42
+    }
+  }' | jq -r '.predictions[0].output' | base64 -d > test_video.mp4
+
+echo -e "\nVideo saved as test_video.mp4"
+```
+
 ## Cleanup
 
 ### Remove Application
